@@ -7,19 +7,37 @@
       font-family: sans-serif;
       text-align: center;
       padding: 40px;
+      background: #0f0f0f;
+      color: white;
     }
+
     button {
       font-size: 20px;
       padding: 15px 25px;
       cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      background: #5865F2;
+      color: white;
     }
+
+    button:hover {
+      background: #4752c4;
+    }
+
     #output {
       margin-top: 20px;
       font-family: monospace;
       white-space: pre-wrap;
+      background: #1a1a1a;
+      padding: 15px;
+      border-radius: 10px;
+      display: inline-block;
+      max-width: 90%;
     }
   </style>
 </head>
+
 <body>
 
 <h2>Next Training Generator</h2>
@@ -30,25 +48,25 @@
 
 <script>
 function getNextTraining() {
+  const scheduleHours = [2, 5, 8, 11, 14, 17, 20, 23];
+
   const now = new Date();
 
-  // Get current time in New York (handles DST automatically)
+  // Correct New York time (handles DST automatically)
   const nyNow = new Date(
     now.toLocaleString("en-US", { timeZone: "America/New_York" })
   );
 
-  const scheduleHours = [2, 5, 8, 11, 14, 17, 20, 23];
-
   for (let i = 0; i < scheduleHours.length; i++) {
-    let next = new Date(nyNow);
-    next.setHours(scheduleHours[i], 0, 0, 0);
+    let candidate = new Date(nyNow);
+    candidate.setHours(scheduleHours[i], 0, 0, 0);
 
-    if (next > nyNow) {
-      return next;
+    if (candidate > nyNow) {
+      return candidate;
     }
   }
 
-  // If none left today → first one tomorrow
+  // fallback to next day
   let next = new Date(nyNow);
   next.setDate(next.getDate() + 1);
   next.setHours(scheduleHours[0], 0, 0, 0);
@@ -59,21 +77,17 @@ function getNextTraining() {
 function generate() {
   const nextNY = getNextTraining();
 
-  // Convert NY time → actual UTC timestamp
-  const utcTime = new Date(
-    nextNY.toLocaleString("en-US", { timeZone: "UTC" })
-  );
+  // FIX: use raw timestamp (NO double conversion)
+  const unix = Math.floor(nextNY.getTime() / 1000);
 
-  const unix = Math.floor(utcTime.getTime() / 1000);
-
-  // Format ET time nicely
   const etString = nextNY.toLocaleTimeString("en-US", {
     timeZone: "America/New_York",
     hour: "numeric",
     minute: "2-digit"
   });
 
-  const message = `The next training is <t:${unix}:R> at ${etString} ET. This is <t:${unix}:t> in your local time.`;
+  const message =
+`The next training is <t:${unix}:R> at ${etString} ET. This is <t:${unix}:t> in your local time.`;
 
   document.getElementById("output").innerText = message;
 
