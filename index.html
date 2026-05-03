@@ -49,36 +49,52 @@
 <script>
 const scheduleHours = [2, 5, 8, 11, 14, 17, 20, 23];
 
+function getNYNowParts() {
+  const now = new Date();
+
+  // Get NY time as components (NO string re-parsing)
+  const nyString = now.toLocaleString("en-US", {
+    timeZone: "America/New_York"
+  });
+
+  const ny = new Date(nyString);
+
+  return {
+    year: ny.getFullYear(),
+    month: ny.getMonth(),
+    day: ny.getDate(),
+    hour: ny.getHours(),
+    minute: ny.getMinutes(),
+    seconds: ny.getSeconds()
+  };
+}
+
 function getNextTraining() {
   const now = new Date();
 
-  // Convert now → UTC timestamp (real baseline)
-  const utcNow = now.getTime();
+  for (let dayOffset = 0; dayOffset < 2; dayOffset++) {
 
-  // Check next 7 days worth of slots safely
-  for (let day = 0; day < 2; day++) {
     for (let i = 0; i < scheduleHours.length; i++) {
 
-      // Build a New York time manually using Intl (DST safe)
-      const test = new Date(now);
-
-      test.setUTCDate(test.getUTCDate() + day);
-
-      // Force NY time interpretation
-      const nyString = new Date(
-        test.toLocaleString("en-US", { timeZone: "America/New_York" })
+      // Build candidate in NY time safely
+      const nyNow = new Date(
+        now.toLocaleString("en-US", { timeZone: "America/New_York" })
       );
 
-      nyString.setHours(scheduleHours[i], 0, 0, 0);
+      nyNow.setDate(nyNow.getDate() + dayOffset);
+      nyNow.setHours(scheduleHours[i], 0, 0, 0);
 
-      const unix = Math.floor(
+      // Convert that NY time → real UTC timestamp correctly
+      const utcTimestamp = Math.floor(
         new Date(
-          nyString.toLocaleString("en-US", { timeZone: "UTC" })
-        ).getTime()
+          nyNow.toLocaleString("en-US", { timeZone: "UTC" })
+        ).getTime() / 1000
       );
 
-      if (unix > utcNow) {
-        return unix;
+      const nowUnix = Math.floor(Date.now() / 1000);
+
+      if (utcTimestamp > nowUnix) {
+        return utcTimestamp;
       }
     }
   }
@@ -100,6 +116,6 @@ function generate() {
   navigator.clipboard.writeText(message);
 }
 </script>
-
+  
 </body>
 </html>
