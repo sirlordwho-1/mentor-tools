@@ -47,50 +47,56 @@
 <div id="output"></div>
 
 <script>
-function getNextTraining() {
-  const scheduleHours = [2, 5, 8, 11, 14, 17, 20, 23];
+const scheduleHours = [2, 5, 8, 11, 14, 17, 20, 23];
 
+function getNextTraining() {
   const now = new Date();
 
-  // Correct New York time (handles DST automatically)
-  const nyNow = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/New_York" })
-  );
+  // Convert now → UTC timestamp (real baseline)
+  const utcNow = now.getTime();
 
-  for (let i = 0; i < scheduleHours.length; i++) {
-    let candidate = new Date(nyNow);
-    candidate.setHours(scheduleHours[i], 0, 0, 0);
+  // Check next 7 days worth of slots safely
+  for (let day = 0; day < 2; day++) {
+    for (let i = 0; i < scheduleHours.length; i++) {
 
-    if (candidate > nyNow) {
-      return candidate;
+      // Build a New York time manually using Intl (DST safe)
+      const test = new Date(now);
+
+      test.setUTCDate(test.getUTCDate() + day);
+
+      // Force NY time interpretation
+      const nyString = new Date(
+        test.toLocaleString("en-US", { timeZone: "America/New_York" })
+      );
+
+      nyString.setHours(scheduleHours[i], 0, 0, 0);
+
+      const unix = Math.floor(
+        new Date(
+          nyString.toLocaleString("en-US", { timeZone: "UTC" })
+        ).getTime()
+      );
+
+      if (unix > utcNow) {
+        return unix;
+      }
     }
   }
-
-  // fallback to next day
-  let next = new Date(nyNow);
-  next.setDate(next.getDate() + 1);
-  next.setHours(scheduleHours[0], 0, 0, 0);
-
-  return next;
 }
 
 function generate() {
-  const nextNY = getNextTraining();
+  const unix = getNextTraining();
 
-  // FIX: use raw timestamp (NO double conversion)
-  const unix = Math.floor(nextNY.getTime() / 1000);
-
-  const etString = nextNY.toLocaleTimeString("en-US", {
+  const etTime = new Date(unix * 1000).toLocaleTimeString("en-US", {
     timeZone: "America/New_York",
     hour: "numeric",
     minute: "2-digit"
   });
 
   const message =
-`The next training is <t:${unix}:R> at ${etString} ET. This is <t:${unix}:t> in your local time.`;
+`The next training is <t:${unix}:R> at ${etTime} ET. This is <t:${unix}:t> in your local time.`;
 
   document.getElementById("output").innerText = message;
-
   navigator.clipboard.writeText(message);
 }
 </script>
