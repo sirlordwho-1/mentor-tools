@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
     body {
       margin: 0;
-      background: transparent;
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      background: transparent;
+      font-family: sans-serif;
     }
 
     button {
@@ -21,8 +24,8 @@
       cursor: pointer;
     }
 
-    #output {
-      display: none;
+    button:active {
+      transform: scale(0.97);
     }
   </style>
 </head>
@@ -31,10 +34,56 @@
 
 <button onclick="generate()">Next Training</button>
 
-<div id="output"></div>
-
 <script>
-// paste your SAME JS logic here (unchanged generate + getNextTraining)
+const scheduleHours = [2, 5, 8, 11, 14, 17, 20, 23];
+
+function getNextTraining() {
+  const now = new Date();
+
+  for (let dayOffset = 0; dayOffset < 2; dayOffset++) {
+
+    for (let i = 0; i < scheduleHours.length; i++) {
+
+      const nyNow = new Date(
+        now.toLocaleString("en-US", { timeZone: "America/New_York" })
+      );
+
+      nyNow.setDate(nyNow.getDate() + dayOffset);
+      nyNow.setHours(scheduleHours[i], 0, 0, 0);
+
+      const unix = Math.floor(
+        new Date(
+          nyNow.toLocaleString("en-US", { timeZone: "UTC" })
+        ).getTime() / 1000
+      );
+
+      if (unix > Math.floor(Date.now() / 1000)) {
+        return unix;
+      }
+    }
+  }
+}
+
+function generate() {
+  const unix = getNextTraining();
+
+  const etTime = new Date(unix * 1000).toLocaleTimeString("en-US", {
+    timeZone: "America/New_York",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+
+  const message =
+`The next training is <t:${unix}:R> at ${etTime} ET. This is <t:${unix}:t> in your local time.`;
+
+  navigator.clipboard.writeText(message)
+    .then(() => {
+      alert("Copied to clipboard!");
+    })
+    .catch(() => {
+      alert("Copy failed — check browser permissions");
+    });
+}
 </script>
 
 </body>
